@@ -1,0 +1,349 @@
+Sub Transistor_Output()
+Dim cht As Object
+
+Dim RowNum As Long
+RowNum = ActiveSheet.Cells(2, 3).End(xlDown).Row 'should equal number of columns
+
+Dim rngstring As String
+rngstring = "B" & 2 & ":" & "B" & 52 & "," 'KEEP AS INITIAL REF COLUMN
+Dim colletter As String
+Dim rng As String
+Dim searchrng As Range
+Dim rowfind As Range
+
+'General Graph Parameters
+Set cht = ActiveSheet.ChartObjects.Add(Left:=200, Width:=615, Top:=10, Height:=470)
+'Chart Dimensions
+With cht
+    .Chart.ChartType = xlXYScatterSmoothNoMarkers
+    
+'Multiply and create column
+ActiveSheet.Columns(3).Copy Destination:=ActiveSheet.Columns(6)
+currcol = "F2:F" & RowNum
+Dim rngData As Range
+Dim scival As String
+Dim sci2txt As Double
+Set rngData = ActiveSheet.Range(currcol)
+    rngData = Evaluate(rngData.Address & "*1000000")
+    ActiveSheet.Range("F1") = "I_Drain (" & Chr(181) & "A)"
+    scival = ActiveSheet.Range("F2").Value
+    sci2txt = CDbl(scival)
+    ActiveSheet.Range("F2").Value = sci2txt
+    
+'Find and set Range/Series of Data
+RowStart = 2
+RowEnd = 52
+    Do While RowEnd < RowNum + 1
+        rngstring = rngstring & "F" & RowStart & ":" & "F" & RowEnd
+        'If you reach the end of the range, exit the for loop
+        If RowEnd / RowNum = 1 Then
+            Exit Do
+        End If
+        RowStart = RowStart + 51
+        RowEnd = RowEnd + 51
+        rngstring = rngstring & ","
+    Loop
+    .Chart.SetSourceData Source:=ActiveSheet.Range(rngstring)
+
+'Sample (Series) Names
+    signtest = ActiveSheet.Range("B52").Value
+    Dim arr2 As Variant
+    arr2 = Array(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+    If signtest < 0 Then
+        'make array negative
+        h = 0
+        Do While h < 11
+            arr2(h) = arr2(h) * (-1)
+            h = h + 1
+        Loop
+    End If
+    i = 0
+    Do While i < 11
+        Value = arr2(i)
+        Voltage = Value & "V"
+        .Chart.SeriesCollection(i + 1).Name = Voltage
+        i = i + 1
+    Loop
+    
+'Chart Attributes
+    .Chart.SeriesCollection(1).Select
+    With Selection.Format.Line
+        .Visible = msoTrue
+        .ForeColor.ObjectThemeColor = msoThemeColorText1
+        .ForeColor.TintAndShade = 0
+        .ForeColor.Brightness = 0
+        .Transparency = 0
+    End With
+    .Chart.HasLegend = True
+    .Chart.Legend.Position = xlLegendPositionBottom
+    '.Chart.Legend.Left = 450
+    '.Chart.Legend.Top = 101
+    .Chart.HasTitle = False
+    '.Chart.ChartTitle.Text = "UV/VIS Data"
+    '.Chart.ChartTitle.Font.Bold = True
+    '.Chart.ChartTitle.Font.Size = 20
+    '.Chart.ChartTitle.Font.Underline = xlUnderlineStyleSingle
+
+End With
+
+'Border
+With ActiveSheet.ChartObjects(1).Chart.PlotArea.Border
+    .LineStyle = xlContinuous
+    .Weight = xlMedium
+    .Color = vbBlack
+End With
+
+'X Axis
+With ActiveSheet.ChartObjects(1).Chart.Axes(xlCategory)
+    If signtest < 0 Then
+        .MinimumScale = ActiveSheet.Range("B52").Value
+        .MaximumScale = 0
+        .ReversePlotOrder = True
+        .Crosses = xlMaximum
+    Else
+        .MinimumScale = 0
+        .MaximumScale = ActiveSheet.Range("B52").Value
+        .Crosses = xlMinimum
+    End If
+    .TickLabels.NumberFormat = "#,##0"
+    .HasTitle = True
+    .AxisTitle.Text = "Drain Voltage/ V"
+    .AxisTitle.Font.Size = 20
+    .AxisTitle.Font.Color = vbBlack
+    .MajorTickMark = xlTickMarkOutside
+    .MinorTickMark = xlTickMarkOutside
+    .MajorUnit = 20
+    .Select
+    With Selection.Format.Line
+        .Visible = msoTrue
+        .ForeColor.ObjectThemeColor = msoThemeColorText1
+        .ForeColor.TintAndShade = 0
+        .ForeColor.Brightness = 0
+        .Transparency = 0
+        .Weight = 2
+    End With
+    With Selection.TickLabels
+        .Font.Size = 24
+        .Font.Color = vbBlack
+    End With
+End With
+
+'Y Axis
+With ActiveSheet.ChartObjects(1).Chart.Axes(xlValue)
+    minvalx = Application.WorksheetFunction.Min(Columns(6))
+    .MinimumScale = Application.WorksheetFunction.RoundUp(minvalx, 2)
+    maxvalx = Application.WorksheetFunction.Max(Columns(6))
+    .MaximumScale = Application.WorksheetFunction.RoundUp(maxvalx, 2)
+    If signtest < 0 Then
+        .ReversePlotOrder = True
+        .Crosses = xlMaximum
+    Else
+        .Crosses = xlMinimum
+    End If
+    .HasTitle = True
+    .AxisTitle.Text = "Drain Current/ " & Chr(181) & "A"
+    .AxisTitle.Font.Size = 20
+    .AxisTitle.Font.Color = vbBlack
+    .AxisTitle.Left = 1
+    .AxisTitle.Top = 125
+    .MajorTickMark = xlTickMarkOutside
+    .MinorTickMark = xlTickMarkOutside
+    .MajorUnit = 0.02
+    .TickLabels.NumberFormat = "#,##0.00"
+    .Select
+    With Selection.Format.Line
+        .Visible = msoTrue
+        .ForeColor.ObjectThemeColor = msoThemeColorText1
+        .ForeColor.TintAndShade = 0
+        .ForeColor.Brightness = 0
+        .Transparency = 0
+        .Weight = 2
+    End With
+    With Selection.TickLabels
+        .Font.Size = 24
+        .Font.Color = vbBlack
+    End With
+End With
+
+'Gridlines
+For Each A In ActiveSheet.ChartObjects(1).Chart.Axes
+ A.HasMajorGridlines = False
+ A.HasMinorGridlines = False
+Next A
+
+End Sub
+
+'--------------------------------------------------------------------------------------------
+
+Sub Transistor_Transfer()
+Dim cht As Object
+
+'Dim RowNum As Long
+'RowNum = ActiveSheet.Cells(2, 3).End(xlDown).Row 'should equal number of columns
+
+Dim rngstring As String
+rngstring = "D" & 612 & ":" & "D" & 672 & "," 'KEEP AS INITIAL REF COLUMN
+Dim colletter As String
+Dim rng As String
+Dim searchrng As Range
+Dim rowfind As Range
+
+'General Graph Parameters
+Set cht = ActiveSheet.ChartObjects.Add(Left:=200, Width:=615, Top:=10, Height:=470)
+'Chart Dimensions
+With cht
+    .Chart.ChartType = xlXYScatterSmoothNoMarkers
+    
+'Set Range/Series of Data
+RowStart = 612
+RowEnd = 672
+rngstring = rngstring & "F" & 612 & ":" & "F" & 672 & ","
+rngstring = rngstring & "G" & 612 & ":" & "G" & 672
+.Chart.SetSourceData Source:=ActiveSheet.Range(rngstring)
+
+'Sample (Series) Names
+.Chart.SeriesCollection(1).Name = "Vds_100V"
+.Chart.SeriesCollection(2).Name = "Vds_sqrt_100V"
+    
+'Chart Attributes
+    .Chart.SeriesCollection(1).Select
+    With Selection.Format.Line
+        .Visible = msoTrue
+        .ForeColor.ObjectThemeColor = msoThemeColorText1
+        .ForeColor.TintAndShade = 0
+        .ForeColor.Brightness = 0
+        .Transparency = 0
+    End With
+    .Chart.HasLegend = True
+    .Chart.Legend.Position = xlLegendPositionBottom
+    '.Chart.Legend.Left = 450
+    '.Chart.Legend.Top = 101
+    .Chart.HasTitle = False
+    '.Chart.ChartTitle.Text = "UV/VIS Data"
+    '.Chart.ChartTitle.Font.Bold = True
+    '.Chart.ChartTitle.Font.Size = 20
+    '.Chart.ChartTitle.Font.Underline = xlUnderlineStyleSingle
+
+End With
+
+'Border
+With ActiveSheet.ChartObjects(1).Chart.PlotArea.Border
+    .LineStyle = xlContinuous
+    .Weight = xlMedium
+    .Color = vbBlack
+End With
+
+signtest = ActiveSheet.Range("B672").Value
+'X Axis
+With ActiveSheet.ChartObjects(1).Chart.Axes(xlCategory)
+    If signtest > 0 Then
+        .MaximumScale = ActiveSheet.Range("D672").Value
+        .MinimumScale = ActiveSheet.Range("D612").Value
+        .Crosses = xlMaximum
+    Else
+        .MinimumScale = ActiveSheet.Range("D672").Value
+        .MaximumScale = ActiveSheet.Range("D612").Value
+        .Crosses = xlMinimum
+    End If
+    .Crosses = xlMinimum
+    .TickLabels.NumberFormat = "#,##0"
+    .HasTitle = True
+    .AxisTitle.Text = "Drain Voltage/ V"
+    .AxisTitle.Font.Size = 20
+    .AxisTitle.Font.Color = vbBlack
+    .MajorTickMark = xlTickMarkOutside
+    .MinorTickMark = xlTickMarkOutside
+    .MajorUnit = 20
+    .MinorUnit = 5
+    .Select
+    With Selection.Format.Line
+        .Visible = msoTrue
+        .ForeColor.ObjectThemeColor = msoThemeColorText1
+        .ForeColor.TintAndShade = 0
+        .ForeColor.Brightness = 0
+        .Transparency = 0
+        .Weight = 2
+    End With
+    With Selection.TickLabels
+        .Font.Size = 24
+        .Font.Color = vbBlack
+    End With
+End With
+
+'Y Axis
+With ActiveSheet.ChartObjects(1).Chart
+    .SeriesCollection(2).AxisGroup = xlSecondary
+    .HasAxis(xlValue, xlPrimary) = True
+    .HasAxis(xlValue, xlSecondary) = True
+    With .Axes(xlValue, xlPrimary)
+        .ScaleType = xlScaleLogarithmic
+        'minvalx = Application.WorksheetFunction.Min(Range(ActiveSheet.Cells(612, 6), ActiveSheet.Cells(672, 6)))
+        '.MinimumScale = Application.WorksheetFunction.RoundDown(minvalx, 12)
+        'maxvalx = Application.WorksheetFunction.Max(Range(ActiveSheet.Cells(612, 6), ActiveSheet.Cells(672, 6)))
+        '.MaximumScale = Application.WorksheetFunction.RoundUp(maxvalx, 12)
+        .MinimumScale = Application.WorksheetFunction.Min(Range(ActiveSheet.Cells(612, 6), ActiveSheet.Cells(672, 6)))
+        .MaximumScale = Application.WorksheetFunction.Max(Range(ActiveSheet.Cells(612, 6), ActiveSheet.Cells(672, 6)))
+        .HasTitle = True
+        .AxisTitle.Text = "Drain Current/ " & "A1/2"
+        .AxisTitle.Font.Size = 20
+        .AxisTitle.Font.Color = vbBlack
+        .AxisTitle.Characters(Start:=17, Length:=3).Font.Superscript = True
+        .AxisTitle.Left = 575
+        .AxisTitle.Top = 125
+        .MajorTickMark = xlTickMarkOutside
+        .MinorTickMark = xlTickMarkOutside
+        '.MajorUnit = 1 * (10 ^ -7)
+        '.TickLabels.NumberFormat = "#,##0.00000"
+        .Crosses = xlMinimum
+        .Select
+        With Selection.Format.Line
+            .Visible = msoTrue
+            .ForeColor.ObjectThemeColor = msoThemeColorText1
+            .ForeColor.TintAndShade = 0
+            .ForeColor.Brightness = 0
+            .Transparency = 0
+            .Weight = 2
+        End With
+        With Selection.TickLabels
+            .Font.Size = 24
+            .Font.Color = vbBlack
+        End With
+    End With
+    With .Axes(xlValue, xlSecondary)
+        .MinimumScale = Application.WorksheetFunction.Min(Range(ActiveSheet.Cells(612, 7), ActiveSheet.Cells(672, 7)))
+        .MaximumScale = Application.WorksheetFunction.Max(Range(ActiveSheet.Cells(612, 7), ActiveSheet.Cells(672, 7)))
+        .Crosses = xlMinimum
+        .HasTitle = True
+        '.AxisTitle.Text = "Drain Current/ " & Chr(181) & "A"
+        .AxisTitle.Text = "Drain Current/ " & "A"
+        .AxisTitle.Font.Size = 20
+        .AxisTitle.Font.Color = vbBlack
+        .AxisTitle.Left = 1
+        .AxisTitle.Top = 125
+        .MajorTickMark = xlTickMarkOutside
+        .MinorTickMark = xlTickMarkOutside
+        '.MajorUnit = 4 * (10 ^ -5)
+        .Select
+        With Selection.Format.Line
+            .Visible = msoTrue
+            .ForeColor.ObjectThemeColor = msoThemeColorText1
+            .ForeColor.TintAndShade = 0
+            .ForeColor.Brightness = 0
+            .Transparency = 0
+            .Weight = 2
+        End With
+        With Selection.TickLabels
+            .Font.Size = 24
+            .Font.Color = vbBlack
+        End With
+    End With
+End With
+
+'Gridlines
+For Each A In ActiveSheet.ChartObjects(1).Chart.Axes
+ A.HasMajorGridlines = False
+ A.HasMinorGridlines = False
+Next A
+
+End Sub
+
